@@ -1,0 +1,152 @@
+from termcolor import cprint
+from openai import OpenAI
+import pymysql
+import random
+import json5
+import json
+import os
+import re
+
+from database import DBHandler
+from utils.tools import *
+
+COMPILER_NAME = "clang"
+# COMPILER_NAME = "rustc"
+
+def call_llm(stage, compiler_name, user_input, model_name, temperature):
+    client = OpenAI(api_key="sk-8379d077fae84456a5494ba709bd9243", base_url="https://api.deepseek.com")
+    with open("prompt/three-step-generation-v4.txt", "r") as f:
+        all_prompt = f.read()
+    prompt = all_prompt.split("===prompt===")[stage-1].strip().replace("{compiler_name}", compiler_name)
+    response1 = client.chat.completions.create( model="deepseek-chat", 
+                                                messages=[  {"role": "system", "content": prompt},
+                                                            {"role": "user", "content": user_input}], 
+                                                temperature=temperature,
+                                                stream=False,
+                                                max_tokens=1024)
+    answer = response1.choices[0].message.content
+    print("answer:\n"+answer)
+    return answer
+
+def main():
+    dbhandler = DBHandler()
+    
+    # obtain issue ids
+    dbhandler.cursor.execute(f"select id from {COMPILER_NAME}_bugs")
+    issue_id_list = [issue[0] for issue in dbhandler.cursor.fetchall()]
+    already_writed = []
+    # TMP.
+    # for f in os.listdir(f"/crossfuzz/crossfuzz/data/testcases-{COMPILER_NAME}-2-v1"):
+    #     issue_str = f.split(".")[0].replace("Test", "")
+    #     already_writed.append(int(issue_str))
+    for f in os.listdir(f"/crossfuzz/tmp-crossfuzz/data/testcases-{COMPILER_NAME}-1"):
+        if f.endswith(".txt"):
+            continue
+        issue_str = f.split(".")[0].replace("Test", "")
+        already_writed.append(int(issue_str))
+    with open(f"/crossfuzz/tmp-crossfuzz/data/testcases-{COMPILER_NAME}-1/selected_issue_id_list.txt", "r") as f:
+        already_writed += [int(line.strip()) for line in f.readlines()]
+    # tmp_issue_id_list = list(set(issue_id_list)-set(already_writed))
+    # selected_issue_id_list = random.sample(tmp_issue_id_list, 500)
+    selected_issue_id_list = list(set(issue_id_list)-set(already_writed))
+    print("issue_id_list:", len(issue_id_list))
+    print("selected_issue_id_list:", len(selected_issue_id_list))
+    # return
+    
+    # create table or obtain already generated
+    new_table = f"testcase_{COMPILER_NAME}_2"
+    choice = input(f"Create new table {new_table}? (y/n) ")
+    if choice == "y":
+        dbhandler.cursor.execute(f"drop table if exists {new_table}")
+        dbhandler.cursor.execute(f"""create table {new_table} (
+            id int primary key auto_increment,
+            source_issue_id int,
+            analysis text,
+            transformed_analysis text,
+            testcases longtext)""")
+        dbhandler.conn.commit()
+        already_generated = []
+        # dbhandler.cursor.execute(f"""select source_issue_id from testcase_{COMPILER_NAME}_1""")
+        # results = dbhandler.cursor.fetchall()
+        # already_generated = [issue[0] for issue in results]
+    else:
+        dbhandler.cursor.execute(f"select source_issue_id from {new_table}")
+        results = dbhandler.cursor.fetchall()
+        already_generated = [issue[0] for issue in results]
+        # dbhandler.cursor.execute(f"""select source_issue_id from testcase_{COMPILER_NAME}_1""")
+        # results = dbhandler.cursor.fetchall()
+        # already_generated += [issue[0] for issue in results]
+    print("already_generated:", len(already_generated))
+    selected_issue_id_list = list(set(selected_issue_id_list)-set(already_generated))
+    print("still need to process:", len(selected_issue_id_list))
+    # return
+    
+    # create result folder
+    flag2 = input("Create a new result foler? (y/n) ")
+    if flag2 == "y":
+        dir_path = f"../data/testcases-{COMPILER_NAME}-2"
+        if os.path.exists(dir_path):
+            shutil.rmtree(dir_path)
+        os.makedirs(dir_path)
+    
+    # start processing
+    for issue_id in selected_issue_id_list:
+        # if already generated, skip
+        # if int(issue_id) in already_generated:
+        #     continue
+        cprint(f"processing {issue_id}", "blue")
+        # obtain bug report content
+        dbhandler.cursor.execute(f"""select title, description, comment from {COMPILER_NAME}_bugs where id={issue_id}""")
+        if dbhandler.cursor.rowcount == 0:
+            print("already removed")
+            continue
+        title, description, comment = dbhandler.cursor.fetchall()[0]
+        if description is None and comment is None:
+            continue
+        elif description is None:
+            bug_report_content = title+"\n"+comment
+        elif comment is None:
+            bug_report_content = title+"\n"+description
+        else:
+            bug_report_content = title+"\n"+description+"\n"+comment
+        if count_tokens(bug_report_content) > 10000:
+            print("too long")
+            continue
+        # call llm to analyze
+        analysis = call_llm(1, COMPILER_NAME, bug_report_content, "gemini-3-pro-preview", 0.2)
+        if analysis is None or len(analysis) == 0:
+            print("analysis is empty")
+            continue
+        dbhandler.cursor.execute(f"insert into {new_table} (source_issue_id, analysis) values (%s, %s)", (issue_id, analysis))
+        dbhandler.conn.commit()
+        with open(f"../data/testcases-{COMPILER_NAME}-2/analysis{issue_id}.txt", "w") as f:
+            f.write(analysis)
+        if "\"root_cause\": \"\"" in analysis:
+            # dbhandler.cursor.execute(f"delete from {COMPILER_NAME}_bugs where id={issue_id}")
+            continue
+        # call llm to transform
+        transformed_analysis = call_llm(2, COMPILER_NAME, analysis, "gemini-3-pro-preview", 0.3)
+        if transformed_analysis is None or len(transformed_analysis) == 0:
+            print("transformed_analysis is empty")
+            continue
+        dbhandler.cursor.execute(f"update {new_table} set transformed_analysis=%s where source_issue_id=%s", (transformed_analysis, issue_id))
+        dbhandler.conn.commit()
+        with open(f"../data/testcases-{COMPILER_NAME}-2/transformed_analysis{issue_id}.txt", "w") as f:
+            f.write(transformed_analysis)
+        if "\"potential_root_cause\": \"\"" in transformed_analysis:
+            continue
+        # call llm to generate testcases
+        testcases = call_llm(3, COMPILER_NAME, transformed_analysis, "o3", 0.4)
+        if len(testcases) == 0:
+            print("testcases is empty")
+            continue
+        write_down(COMPILER_NAME, testcases, issue_id)
+        dbhandler.cursor.execute(f"update {new_table} set testcases=%s where source_issue_id=%s", (testcases, issue_id))
+        dbhandler.conn.commit()
+        # break
+    dbhandler.close()
+
+
+if __name__ == "__main__":
+    input("folder path in tools.py has been modified, check it.")
+    main()

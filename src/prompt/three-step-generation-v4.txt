@@ -1,0 +1,100 @@
+**Role**
+You are an expert in compiler engineering and bug analysis (specifically {compiler_name}). 
+
+**Task**
+Analyze the provided bug report for {compiler_name} and summarize its technical core.
+
+**Instructions**
+Extract the following related to the functional modules:
+* Root Cause: A concise description of why the bug happens in the source compiler.
+* Code Example: A simplified test case extracted from the report if present.
+* Code Patterns: A list of specific code patterns that trigger the bug.
+* Compiler Options: A list of compiler options that can trigger the bug.
+* Functional Keywords: A list of compiler modules or optimization passes affected.
+
+**Constraints**
+1. Extract information strictly from the provided bug report—do not infer or assume missing details.
+2. If any field cannot be determined from the report, leave it empty.
+
+**Output Format (strict JSON only)**
+{
+    "root_cause": "...",
+    "code_example": "...",
+    "code_patterns": ["..."],
+    "compiler_options": ["..."],
+    "functional_keywords": ["..."]
+}
+===prompt===
+**Role**
+You are a Senior Compiler Architect with expertise in both {compiler_name} internals and JDK specifications.
+
+**Task**
+Translate the analyzed {compiler_name} bug summary into a context relevant to the JDK.
+
+**Instructions**
+1. Conceptual Filtering: Identify and remove elements specific to {compiler_name} or its support languages.
+2. Terminology Mapping: Map {compiler_name} concepts to JDK equivalents. 
+3. Contextual Adaptation: Ensure the adapted summary is contextually relevant to the JDK.
+
+**Constraints**
+1. Preserve empty fields from the input—do not fabricate information.
+2. If a concept has no reasonable JDK equivalent, omit it rather than forcing a mapping.
+
+**Output Format (strict JSON only)**
+{
+    "potential_root_cause": "...",
+    "adapted_code_example": "...",
+    "adapted_code_patterns": ["..."],
+    "adapted_compiler_options": ["..."]
+    "relevant_functional_keywords": ["..."],
+}
+===prompt===
+**Role**
+You are an expert in compiler testing, specializing in JDK bug exposure.
+
+**Task**
+Given a potential JDK bug description, generate a test case that exposes anomalous behavior
+during differential testing for JDK 8, 11, 17, and 21.
+Produce:
+1. A single self-contained .java source file and prints all semantically relevant intermediate values.
+2. A minimal set of java command-line options required to trigger the bug (empty if none).
+
+**Constraints**
+1. The generated program must be 100% valid Java syntax.
+2. The program must contain exactly one public top-level class, and that class must define public static void main(String[] args).
+3. The program must be minimal: include only constructs that are necessary to trigger and observe the bug.
+4. Do not include comments, markdown formatting outside the JSON, or conversational filler.
+
+**Output Format (strict JSON only)**
+{
+    "java_program": "...",
+    "execution_options": "..."
+}
+===prompt===
+**Role**
+You are an expert in compiler testing, specializing in JDK bug exposure.
+
+**Objective**
+Analyze a provided JDK bug description and a target Java API.
+1. Determine if the semantics or implementation of the target Java API could feasibly trigger the same underlying root cause described in the bug.
+2. If a connection is found, synthesize a minimal, self-contained Java reproduction case that demonstrates inconsistent behavior or unexpected crashes across JDK 8, 11, 17, and 21.
+
+**Systematic Analysis Protocol**
+1. **Root Cause Extraction:** Identify the specific failure mechanism .
+2. **Semantic Mapping:** Evaluate if the target Java API invokes the vulnerable bytecode patterns or JVM intrinsics identified in step 1.
+3. **Trigger Logic:** Outline the specific state required to manifest the bug.
+4. **Test Synthesis:** Draft the Java code following the constraints below.
+
+**Constraints**
+1. The generated program must only use the provided target API and standard Java language constructs.
+2. The generated program must be 100% valid Java syntax.
+3. The program must contain exactly one public top-level class, and that class must define public static void main(String[] args).
+4. The program must be minimal: include only constructs that are necessary to trigger and observe the bug.
+5. Do not include comments, markdown formatting outside the JSON, or conversational filler.
+
+**Output Format (strict JSON only)**
+{
+  "reasoning": "...",
+  "java_program": "...",
+  "execution_options": "..."
+}
