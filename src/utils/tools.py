@@ -11,7 +11,7 @@ from termcolor import cprint
 from functools import wraps
 from multiprocessing import Lock, Value
 
-logging.basicConfig(filename='step1_transform_testcase_deepseek.log', level=logging.INFO)
+logging.basicConfig(filename='step1_transform_testcase.log', level=logging.INFO)
 
 request_lock = Lock()
 last_request_time = Value('d', 0.0)
@@ -59,8 +59,8 @@ def retry_with_backoff(max_retries=5, initial_delay=10):
 @retry_with_backoff(max_retries=5, initial_delay=10)
 def call_llm(stage, compiler_name, user_input, model_name, temperature):
     api_keys = [
-        "sk-qsBH3eZLojOoPQuDiR8LSPw8tw2cU2EWeKrGfeBVxUMPrFlc", 
-        "sk-G4XhKgHt5tCkjKI0EHY26ymrF5xjwY2MKUIqFWFK1IMvOcH1"
+        "sk-xxx", 
+        "sk-xxx"
     ]
     client = OpenAI(
         api_key= random.choice(api_keys),

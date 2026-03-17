@@ -11,22 +11,21 @@ from database import DBHandler
 from utils.tools import *
 
 COMPILER_NAME = "clang"
-# COMPILER_NAME = "rustc"
 
-def call_llm(stage, compiler_name, user_input, model_name, temperature):
-    client = OpenAI(api_key="sk-8379d077fae84456a5494ba709bd9243", base_url="https://api.deepseek.com")
-    with open("prompt/three-step-generation-v4.txt", "r") as f:
-        all_prompt = f.read()
-    prompt = all_prompt.split("===prompt===")[stage-1].strip().replace("{compiler_name}", compiler_name)
-    response1 = client.chat.completions.create( model="deepseek-chat", 
-                                                messages=[  {"role": "system", "content": prompt},
-                                                            {"role": "user", "content": user_input}], 
-                                                temperature=temperature,
-                                                stream=False,
-                                                max_tokens=1024)
-    answer = response1.choices[0].message.content
-    print("answer:\n"+answer)
-    return answer
+# def call_llm(stage, compiler_name, user_input, model_name, temperature):
+#     client = OpenAI(api_key="sk-xxx", base_url="https://api.deepseek.com")
+#     with open("prompt/three-step-generation-v4.txt", "r") as f:
+#         all_prompt = f.read()
+#     prompt = all_prompt.split("===prompt===")[stage-1].strip().replace("{compiler_name}", compiler_name)
+#     response1 = client.chat.completions.create( model="deepseek-chat", 
+#                                                 messages=[  {"role": "system", "content": prompt},
+#                                                             {"role": "user", "content": user_input}], 
+#                                                 temperature=temperature,
+#                                                 stream=False,
+#                                                 max_tokens=1024)
+#     answer = response1.choices[0].message.content
+#     print("answer:\n"+answer)
+#     return answer
 
 def main():
     dbhandler = DBHandler()
