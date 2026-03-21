@@ -49,19 +49,25 @@ make all
 
 ### 3. Run CrossFuzz
 
-Step1. Test case transpiling
+3-1. Test case transpiling
+
+We design a three-step prompt chain for test case transpiling: (1) bug report distillation, (2) cross-language semantic bridge, and (3) test case synthesis. All these steps are implemented in `step1_transform_testcase.py`. The results are stored in table `testcase_xxx`.
 
 ```bash
 python step1_transform_testcase.py
 ```
 
-Step2. Test case diversification
+3-2. Test case diversification
+
+In this phase, we enlarge the test cases by searching for semantically similar APIs and generating new test cases. This step is implemented in `step2_enlarge_testcase.py`. The results are stored in table `enlargement_xxx`.
 
 ```bash
 python step2_enlarge_testcase.py
 ```
 
-Step3. Differential testing
+3-3. Differential testing
+
+In this phase, we run the test cases on different JVMs and identify anomalous behaviors. This step is implemented in `step3_differential_testing_multi_threads.py`. The results are stored in table `diff_test_xxx`.
 
 ```bash
 python step3_differential_testing_multi_threads.py
