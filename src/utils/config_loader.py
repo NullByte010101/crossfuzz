@@ -33,15 +33,33 @@ class ConfigLoader:
     
     def _process_paths(self, config: Dict[str, Any]) -> Dict[str, Any]:
         """处理路径配置"""
-        if 'paths' in config and 'project_root' in config['paths']:
-            project_root = Path(config['paths']['project_root'])
-            
-            # 将相对路径转换为绝对路径
-            for key, path in config['paths'].items():
-                if key != 'project_root' and not Path(path).is_absolute():
-                    config['paths'][key] = str(project_root / path)
-        
+        paths = config.setdefault('paths', {})
+        # project_root 为空时默认为仓库根目录
+        project_root = Path(paths.get('project_root') or Path(__file__).parent.parent.parent)
+        paths['project_root'] = str(project_root)
+        self._project_root = project_root
+
+        # 将相对路径转换为绝对路径
+        for key, path in paths.items():
+            if key != 'project_root':
+                paths[key] = self.resolve(path)
+
         return config
+
+    def resolve(self, path, base=None):
+        """将相对路径解析为绝对路径（默认相对于 project_root）"""
+        base = Path(base) if base else self._project_root
+        path = Path(path)
+        return str(path if path.is_absolute() else base / path)
+
+    def path(self, key_path, base=None):
+        """获取路径配置并解析为绝对路径，支持字符串或字符串列表"""
+        value = self.get(key_path)
+        if value is None:
+            raise KeyError(f"配置项不存在: {key_path}")
+        if isinstance(value, list):
+            return [self.resolve(p, base) for p in value]
+        return self.resolve(value, base)
 
     def get(self, key_path, default=None):
         """获取配置值，支持嵌套键"""

@@ -4,9 +4,18 @@ import json
 import shutil
 import sqlite3
 
-COMPILER = "gcc-4"
-TESTCASE_DIR = f"../data/testcases-{COMPILER}/"
-RESULT_DIR = f"../data/results-{COMPILER}/"
+from utils.config_loader import config
+
+DB_FILE = config.get("paths.db_file")
+DIFF_TEST_TABLE = config.get("step4_1.diff_test_table")
+TESTCASE_DIR = os.path.join(config.path("step4_1.testcase_dir"), "")
+RESULT_DIR = os.path.join(config.path("step4_1.result_dir"), "")
+ANOMALIES_FILE = config.path("step4_1.anomalies_file")
+FIRST_FILTER_OUTPUT = config.path("step4_1.first_filter_output")
+SECOND_FILTER_INPUT = config.path("step4_1.second_filter_input")
+SECOND_FILTER_OUTPUT = config.path("step4_1.second_filter_output")
+POTENTIAL_BUGS_OUTPUT = config.path("step4_1.potential_bugs_output")
+FALSE_POSITIVES_OUTPUT = config.path("step4_1.false_positives_output")
 
 class DiffTestResult:
     def __init__(self, source_issue_id, compile_returncode, compiler_time, compile_stdout, compile_stderr, execute_returncode, execute_time, execute_stdout, execute_stderr):
@@ -33,8 +42,7 @@ def query_one_testcase(conn, issue_id):
         "graalvm-21": None
     }
     cursor = conn.cursor()
-    table_name = f"diff_test_{COMPILER.replace("-", "_")}"
-    cursor.execute(f"SELECT * FROM {table_name} WHERE source_issue_id = ?", (issue_id,))
+    cursor.execute(f"SELECT * FROM {DIFF_TEST_TABLE} WHERE source_issue_id = ?", (issue_id,))
     for row in cursor.fetchall():
         result_dict[row[2]] = DiffTestResult(row[1], row[3], row[4], row[5], row[6], row[7], row[8], row[9], row[10])
     print("query result: ", result_dict)
@@ -224,8 +232,8 @@ def filter(anomaly_type, anomaly_results, testcase_content):
     return "still_anomalies"
 
 def first_filter():
-    conn = sqlite3.connect("../data/db/crossfuzz.db")
-    with open("anomalies_crossfuzz_gcc_4.json", "r") as f:
+    conn = sqlite3.connect(DB_FILE)
+    with open(ANOMALIES_FILE, "r") as f:
         anomalies = json.load(f)
     still_anomalies = {
         "some compile successfully, some failed": [],
@@ -255,13 +263,13 @@ def first_filter():
             shutil.move(RESULT_DIR+f"Test{anomaly_id}.java", f"{RESULT_DIR}{folder}/Test{anomaly_id}.java")
         #     break
         # break
-    with open("still_anomalies_cpython.json", "w") as f:
+    with open(FIRST_FILTER_OUTPUT, "w") as f:
         json.dump(still_anomalies, f, indent=4)
     conn.close()
 
 def second_filter():
-    conn = sqlite3.connect("../data/db/crossfuzz.db")
-    with open(RESULT_DIR+"still_anomalies.json", "r") as f:
+    conn = sqlite3.connect(DB_FILE)
+    with open(SECOND_FILTER_INPUT, "r") as f:
         anomalies = json.load(f)
     # anomalies = {
     #     "inconsistent outputs": [],
@@ -302,7 +310,7 @@ def second_filter():
                 still_anomalies[anomaly_type].append(anomaly_id)
         #     break
         # break
-    with open("still_anomalies.json", "w") as f:
+    with open(SECOND_FILTER_OUTPUT, "w") as f:
         json.dump(still_anomalies, f, indent=4)
     conn.close()
     still_anomaly_num = 0
@@ -311,9 +319,9 @@ def second_filter():
         print(f"{k:<{max_key_length}} : {len(v):>4}")
         still_anomaly_num += len(v)
     print(f"still anomalies: {still_anomaly_num}")
-    with open("potential_bugs.json", "w") as f:
+    with open(POTENTIAL_BUGS_OUTPUT, "w") as f:
         json.dump(potential_bugs, f, indent=4)
-    with open("false_positives.json", "w") as f:
+    with open(FALSE_POSITIVES_OUTPUT, "w") as f:
         json.dump(false_positives, f, indent=4)
 
 if __name__ == "__main__":

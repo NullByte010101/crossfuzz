@@ -1,34 +1,47 @@
 from termcolor import cprint
-import pymysql
 import random
 import json5
 import json
+import shutil
 import os
 import re
 
 from database import DBHandler
 from utils.tools import *
+from utils.config_loader import config
 
-COMPILER_NAME = "clang"
+COMPILER_NAME = config.get("step1.compiler_name")
+BUG_TABLE = config.get("step1.bug_table")
+TABLE_NAME = config.get("step1.table_name")
+SKIP_TESTCASE_DIR = config.path("step1.skip_testcase_dir")
+SKIP_ISSUE_LIST = config.path("step1.skip_issue_list")
+OUTPUT_DIR = config.path("step1.output_dir")
 
 def main():
     dbhandler = DBHandler()
     
     # obtain issue ids
-    dbhandler.cursor.execute(f"select id from {COMPILER_NAME}_bugs")
+    dbhandler.cursor.execute(f"select id from {BUG_TABLE}")
     issue_id_list = [issue[0] for issue in dbhandler.cursor.fetchall()]
     already_writed = []
     # TMP.
     # for f in os.listdir(f"../data/testcases-{COMPILER_NAME}-2-v1"):
     #     issue_str = f.split(".")[0].replace("Test", "")
     #     already_writed.append(int(issue_str))
-    for f in os.listdir(f"../data/testcases-{COMPILER_NAME}-1"):
-        if f.endswith(".txt"):
-            continue
-        issue_str = f.split(".")[0].replace("Test", "")
-        already_writed.append(int(issue_str))
-    with open(f"../data/testcases-{COMPILER_NAME}-1/selected_issue_id_list.txt", "r") as f:
-        already_writed += [int(line.strip()) for line in f.readlines()]
+    # Skipping already processed issues is optional: missing paths are ignored
+    if os.path.isdir(SKIP_TESTCASE_DIR):
+        for f in os.listdir(SKIP_TESTCASE_DIR):
+            if f.endswith(".txt"):
+                continue
+            issue_str = f.split(".")[0].replace("Test", "")
+            already_writed.append(int(issue_str))
+    else:
+        print(f"skip_testcase_dir not found, nothing skipped: {SKIP_TESTCASE_DIR}")
+    if os.path.isfile(SKIP_ISSUE_LIST):
+        with open(SKIP_ISSUE_LIST, "r") as f:
+            already_writed += [int(line.strip()) for line in f.readlines()]
+    else:
+        print(f"skip_issue_list not found, nothing skipped: {SKIP_ISSUE_LIST}")
     # tmp_issue_id_list = list(set(issue_id_list)-set(already_writed))
     # selected_issue_id_list = random.sample(tmp_issue_id_list, 500)
     selected_issue_id_list = list(set(issue_id_list)-set(already_writed))
@@ -37,16 +50,16 @@ def main():
     # return
     
     # create table or obtain already generated
-    new_table = f"testcase_{COMPILER_NAME}_2"
+    new_table = TABLE_NAME
     choice = input(f"Create new table {new_table}? (y/n) ")
     if choice == "y":
         dbhandler.cursor.execute(f"drop table if exists {new_table}")
         dbhandler.cursor.execute(f"""create table {new_table} (
-            id int primary key auto_increment,
-            source_issue_id int,
+            id integer primary key autoincrement,
+            source_issue_id integer,
             analysis text,
             transformed_analysis text,
-            testcases longtext)""")
+            testcases text)""")
         dbhandler.conn.commit()
         already_generated = []
         # dbhandler.cursor.execute(f"""select source_issue_id from testcase_{COMPILER_NAME}_1""")
@@ -67,10 +80,9 @@ def main():
     # create result folder
     flag2 = input("Create a new result foler? (y/n) ")
     if flag2 == "y":
-        dir_path = f"../data/testcases-{COMPILER_NAME}-2"
-        if os.path.exists(dir_path):
-            shutil.rmtree(dir_path)
-        os.makedirs(dir_path)
+        if os.path.exists(OUTPUT_DIR):
+            shutil.rmtree(OUTPUT_DIR)
+        os.makedirs(OUTPUT_DIR)
     
     # start processing
     for issue_id in selected_issue_id_list:
@@ -79,11 +91,12 @@ def main():
         #     continue
         cprint(f"processing {issue_id}", "blue")
         # obtain bug report content
-        dbhandler.cursor.execute(f"""select title, description, comment from {COMPILER_NAME}_bugs where id={issue_id}""")
-        if dbhandler.cursor.rowcount == 0:
+        dbhandler.cursor.execute(f"""select title, description, comment from {BUG_TABLE} where id=?""", (issue_id,))
+        rows = dbhandler.cursor.fetchall()
+        if len(rows) == 0:
             print("already removed")
             continue
-        title, description, comment = dbhandler.cursor.fetchall()[0]
+        title, description, comment = rows[0]
         if description is None and comment is None:
             continue
         elif description is None:
@@ -100,21 +113,21 @@ def main():
         if analysis is None or len(analysis) == 0:
             print("analysis is empty")
             continue
-        dbhandler.cursor.execute(f"insert into {new_table} (source_issue_id, analysis) values (%s, %s)", (issue_id, analysis))
+        dbhandler.cursor.execute(f"insert into {new_table} (source_issue_id, analysis) values (?, ?)", (issue_id, analysis))
         dbhandler.conn.commit()
-        with open(f"../data/testcases-{COMPILER_NAME}-2/analysis{issue_id}.txt", "w") as f:
+        with open(os.path.join(OUTPUT_DIR, f"analysis{issue_id}.txt"), "w") as f:
             f.write(analysis)
         if "\"root_cause\": \"\"" in analysis:
-            # dbhandler.cursor.execute(f"delete from {COMPILER_NAME}_bugs where id={issue_id}")
+            # dbhandler.cursor.execute(f"delete from {BUG_TABLE} where id={issue_id}")
             continue
         # call llm to transform
         transformed_analysis = call_llm(2, COMPILER_NAME, analysis)
         if transformed_analysis is None or len(transformed_analysis) == 0:
             print("transformed_analysis is empty")
             continue
-        dbhandler.cursor.execute(f"update {new_table} set transformed_analysis=%s where source_issue_id=%s", (transformed_analysis, issue_id))
+        dbhandler.cursor.execute(f"update {new_table} set transformed_analysis=? where source_issue_id=?", (transformed_analysis, issue_id))
         dbhandler.conn.commit()
-        with open(f"../data/testcases-{COMPILER_NAME}-2/transformed_analysis{issue_id}.txt", "w") as f:
+        with open(os.path.join(OUTPUT_DIR, f"transformed_analysis{issue_id}.txt"), "w") as f:
             f.write(transformed_analysis)
         if "\"potential_root_cause\": \"\"" in transformed_analysis:
             continue
@@ -123,8 +136,8 @@ def main():
         if len(testcases) == 0:
             print("testcases is empty")
             continue
-        write_down(COMPILER_NAME, testcases, issue_id)
-        dbhandler.cursor.execute(f"update {new_table} set testcases=%s where source_issue_id=%s", (testcases, issue_id))
+        write_down(COMPILER_NAME, testcases, issue_id, os.path.join(OUTPUT_DIR, ""))
+        dbhandler.cursor.execute(f"update {new_table} set testcases=? where source_issue_id=?", (testcases, issue_id))
         dbhandler.conn.commit()
         # break
     dbhandler.close()

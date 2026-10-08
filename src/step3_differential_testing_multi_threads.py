@@ -14,48 +14,20 @@ import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import sqlite3
 
-JDK_BIN_PATHS = [
-    "../jvms/hotspot-8/build/linux-x86_64-normal-server-release/jdk/bin",
-    "../jvms/hotspot-11/build/linux-x86_64-normal-server-release/jdk/bin",
-    "../jvms/hotspot-17/build/linux-x86_64-server-release/jdk/bin",
-    "../jvms/hotspot-21/build/linux-x86_64-server-release/jdk/bin",
-    "../jvms/hotspot-25/build/linux-x86_64-server-release/jdk/bin",
-    "../jvms/openj9-8/bin",
-    "../jvms/openj9-11/bin",
-    "../jvms/openj9-17/bin",
-    "../jvms/openj9-21/bin",
-    "../jvms/openj9-25/bin",
-    "../jvms/graalvm-21/bin",
-    "../jvms/graalvm-25/bin"
-]
+from utils.config_loader import config
 
-# TESTCASE_DIRS = [ "../data/testcases-gcc-1",
-#             "../data/testcases-clang-1",
-#             "../data/testcases-cpython-1",
-#             "../data/testcases-cpython-1-v1",
-#             "../data/testcases-pypy-1",
-#             "../data/testcases-pypy-1-v1",
-#             "../data/testcases-rustc-1",
-#             "../data/testcases-gcc-2",
-#             "../data/testcases-clang-2",
-#             "../data/testcases-pypy-2",
-#             "../data/testcases-rustc-2",
-#             "../data/testcases-rustc-2-v1",
-#             "../data/testcases-cpython-2",
-#             ]
-# TESTCASE_DIRS = ["../data/testcases-gcc-4"]
-# ANOMALIES_FILE = "anomalies_crossfuzz_gcc_4.json"
-
-TESTCASE_DIRS = ["../old-data/testcases-xwq-gcc"]
-ANOMALIES_FILE = "anomalies_crossfuzz_gcc_xwq.json"
+DB_FILE = config.get("paths.db_file")
+JVMS_DIR = config.get("paths.jvms_dir")
+JDK_BIN_PATHS = config.path("step3.jdk_bin_paths", base=JVMS_DIR)
+TESTCASE_DIRS = config.path("step3.testcase_dirs")
+ANOMALIES_FILE = config.path("step3.anomalies_file")
 
 def get_jdk_name(jdk_path):
     """
     Extract the JDK name from the bin path of JDK.
     """
 
-    match = re.search(r"jvms\/(.*?)\/", jdk_path)
-    return match.group(1)
+    return os.path.relpath(jdk_path, JVMS_DIR).split(os.sep)[0]
 
 def run_javac(compile_cmd, env):
     """
@@ -475,7 +447,7 @@ def run_one_folder(conn, cursor, testcase_dir, result_dir):
         # break
 
 def kill_existing_processes():
-    os.system("pkill -f crossfuzz/jvms")
+    subprocess.run(["pkill", "-f", JVMS_DIR])
 
 def main():
     # Registration cleanup function
@@ -486,8 +458,7 @@ def main():
 
     input("Attention: the result folders are never cleared! Press Enter to continue...")
     
-    # conn = sqlite3.connect("../data/db/crossfuzz.db")
-    conn = sqlite3.connect("../data/db/crossfuzz.db")
+    conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
     for testcase_dir in TESTCASE_DIRS:
         result_dir = testcase_dir.replace("testcases", "results")
@@ -498,8 +469,7 @@ def main():
     conn.close()
 
 def clean():
-    # conn = sqlite3.connect("../data/db/crossfuzz.db")
-    conn = sqlite3.connect("../data/db/crossfuzz.db")
+    conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
     for folder in TESTCASE_DIRS:
         result_dir = folder.replace("testcases-", "results-")

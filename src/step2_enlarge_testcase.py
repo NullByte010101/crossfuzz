@@ -7,10 +7,15 @@ import re
 
 # from utils.tools import *
 from utils.tools import write_down, parse_output, call_llm
+from utils.config_loader import config
 
-COMPILER_NAME = "gcc"
-TABLE_NAME = "gcc_2"
-OUTPUT_DIR = f"../data/testcases-gcc-4"
+COMPILER_NAME = config.get("step2.compiler_name")
+TABLE_NAME = config.get("step2.table_suffix")
+OUTPUT_DIR = config.path("step2.output_dir")
+ANALYZED_ISSUES_FILE = config.path("step2.analyzed_issues")
+DB_FILE = config.get("paths.db_file")
+MODEL_DIR = config.get("paths.model_dir")
+METHOD_DESCRIPTION_FILE = config.get("paths.method_description")
 
 def find_similar_methods(model, merged_info, source_issue_id, description, class_embeddings, cursor):
     # use sentence-transformer to calculate cosine similarity
@@ -25,7 +30,7 @@ def enlarge():
     # prepare necessary data
     cprint("Prepare necessary data...", "blue")
     choice = input("Delete the analyzed record? [y/n] ")
-    analyzed_issues_path = "../data/analyzed_issues.txt"
+    analyzed_issues_path = ANALYZED_ISSUES_FILE
     if choice == "y":
         if os.path.exists(analyzed_issues_path):
             os.remove(analyzed_issues_path)
@@ -34,13 +39,13 @@ def enlarge():
         with open(analyzed_issues_path, "r") as f:
             analyzed_issues = f.readlines()
     # model = SentenceTransformer('../model/minilm-l6-v2')
-    model = SentenceTransformer('../model/all-mpnet-base-v2', device='cuda')
-    with open("../data/method_description.json", "r") as f:
+    model = SentenceTransformer(MODEL_DIR, device='cuda')
+    with open(METHOD_DESCRIPTION_FILE, "r") as f:
         merged_info = json.load(f)
     class_embeddings = model.encode(list(merged_info.values()))
     cprint("Finished preparing necessary data", "blue")
-    
-    db = sqlite3.connect('../data/db/crossfuzz.db')
+
+    db = sqlite3.connect(DB_FILE)
     cursor = db.cursor()
     cursor.execute(f"DROP TABLE IF EXISTS enlargement_{TABLE_NAME}")
     cursor.execute(f"CREATE TABLE enlargement_{TABLE_NAME} (source_issue_id INT, merged_info_id INT, merged_name TEXT, score REAL)")
@@ -73,14 +78,14 @@ def one_step(user_input, merged_name, source_issue_id, merged_info_id):
         raise Exception("new_testcase is None")
     comment = "// "+merged_name
     try:
-        write_down(COMPILER_NAME, new_testcase, f"{source_issue_id}_{merged_info_id}", f"../data/testcases-{COMPILER_NAME}-4/", comment)
+        write_down(COMPILER_NAME, new_testcase, f"{source_issue_id}_{merged_info_id}", os.path.join(OUTPUT_DIR, ""), comment)
     except Exception as e:
         print(e)
 
 def generate_new_testcases():
-    with open("../data/method_description.json", "r") as f:
+    with open(METHOD_DESCRIPTION_FILE, "r") as f:
         merged_info = json.load(f)
-    db = sqlite3.connect('../data/db/crossfuzz.db')
+    db = sqlite3.connect(DB_FILE)
     cursor = db.cursor()
     cursor.execute(f"SELECT * FROM enlargement_{TABLE_NAME} WHERE score > 0.65")
     #  ORDER BY score DESC

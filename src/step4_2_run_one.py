@@ -8,40 +8,19 @@ import tempfile
 import subprocess
 from termcolor import cprint
 
-# from database import DBHandler
+from utils.config_loader import config
 
-JDK_BIN_PATHS = [
-    "../jvms/bootjvm8/bin",
-    # "../jvms/bootjvm11.0.29/bin",
-    "../jvms/bootjvm11.0.30/bin",
-    "../jvms/bootjvm17/bin",
-    # "../jvms/bootjvm21.0.9/bin",
-    # "../jvms/bootjvm21.0.10/bin",
-    # "../jvms/bootjvm25/bin",
-    "../jvms/openj9-8-8u482-b08/bin",
-    "../jvms/openj9-11.0.30/bin",
-    "../jvms/openj9-17.0.18+8/bin",
-    "../jvms/openj9-21.0.10+7/bin",
-    # "../jvms/hotspot-8/build/linux-x86_64-normal-server-release/jdk/bin",
-    # "../jvms/hotspot-11/build/linux-x86_64-normal-server-release/jdk/bin",
-    # "../jvms/hotspot-17/build/linux-x86_64-server-release/jdk/bin",
-    # "../jvms/hotspot-21/build/linux-x86_64-server-release/jdk/bin",
-    # "../jvms/openj9-8/bin",
-    # "../jvms/openj9-11/bin",
-    # "../jvms/openj9-17/bin",
-    # "../jvms/openj9-21/bin",
-    # "../jvms/graalvm-21/bin"
-]
-
-TESTCASE_DIR = "../data/results-gcc-4/potential_bugs"
+JVMS_DIR = config.get("paths.jvms_dir")
+JDK_BIN_PATHS = config.path("step4_2.jdk_bin_paths", base=JVMS_DIR)
+TESTCASE_DIR = config.path("step4_2.testcase_dir")
+JAVA_FILES = config.get("step4_2.java_files")
 
 def get_jdk_name(jdk_path):
     """
     Extract the JDK name from the bin path of JDK.
     """
 
-    match = re.search(r"jvms\/(.*?)\/", jdk_path)
-    return match.group(1)
+    return os.path.relpath(jdk_path, JVMS_DIR).split(os.sep)[0]
 
 def run_javac(compile_cmd, env):
     """
@@ -170,8 +149,7 @@ def compile_and_run(java_file_path, class_name, jdk_bin_path, options):
 
 def main():
     # Obtain the list of Java files in the input directory
-    # selected_java_files = [f"Test{105657}.java"]
-    selected_java_files = ["Test118381_5304.java"]
+    selected_java_files = JAVA_FILES
     
     # Iterate over each Java file
     for java_file in selected_java_files:
