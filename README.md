@@ -50,9 +50,22 @@ bash ./configure
 make all
 ```
 
-### 3. Run CrossFuzz
+### 3. Download the Database
 
-3-1. Test case transpiling
+All scripts read and write the SQLite database `data/db/crossfuzz.db`. Because of its size (346MB), it is not stored in this repository and is instead provided as a gzip-compressed file in the [data-v1 release](https://github.com/NullByte010101/crossfuzz/releases/tag/data-v1). Download and decompress it as follows:
+
+```bash
+cd crossfuzz
+mkdir -p data/db
+curl -L -o data/db/crossfuzz.db.gz https://github.com/NullByte010101/crossfuzz/releases/download/data-v1/crossfuzz.db.gz
+gunzip data/db/crossfuzz.db.gz
+```
+
+The SHA-256 checksum of `crossfuzz.db` is `f7e52351a1280ad492ceb586ad241a17466cc428c3ea48b4bdd131480ddf4a79`.
+
+### 4. Run CrossFuzz
+
+4-1. Test case transpiling
 
 We design a three-step prompt chain for test case transpiling: (1) bug report distillation, (2) cross-language semantic bridge, and (3) test case synthesis. All these steps are implemented in `step1_transform_testcase.py`. The results are stored in table `testcase_xxx`.
 
@@ -60,7 +73,7 @@ We design a three-step prompt chain for test case transpiling: (1) bug report di
 python step1_transform_testcase.py
 ```
 
-3-2. Test case diversification
+4-2. Test case diversification
 
 In this phase, we enlarge the test cases by searching for semantically similar APIs and generating new test cases. This step is implemented in `step2_enlarge_testcase.py`. The results are stored in table `enlargement_xxx`.
 
@@ -68,7 +81,7 @@ In this phase, we enlarge the test cases by searching for semantically similar A
 python step2_enlarge_testcase.py
 ```
 
-3-3. Differential testing
+4-3. Differential testing
 
 In this phase, we run the test cases on different JVMs and identify anomalous behaviors. This step is implemented in `step3_differential_testing_multi_threads.py`. The results are stored in table `diff_test_xxx`.
 
