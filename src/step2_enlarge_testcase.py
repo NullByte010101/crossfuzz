@@ -1,32 +1,16 @@
 from sentence_transformers import SentenceTransformer, util
 from termcolor import cprint
-from openai import OpenAI
 import sqlite3
 import json
 import os
 import re
 
 # from utils.tools import *
-from utils.tools import write_down, parse_output
+from utils.tools import write_down, parse_output, call_llm
 
 COMPILER_NAME = "gcc"
 TABLE_NAME = "gcc_2"
 OUTPUT_DIR = f"../data/testcases-gcc-4"
-
-def call_llm(stage, compiler_name, user_input, model_name, temperature):
-    client = OpenAI(api_key="sk-8379d077fae84456a5494ba709bd9243", base_url="https://api.deepseek.com")
-    with open("prompt/three-step-generation-v4.txt", "r") as f:
-        all_prompt = f.read()
-    prompt = all_prompt.split("===prompt===")[stage-1].strip().replace("{compiler_name}", compiler_name)
-    response1 = client.chat.completions.create( model="deepseek-chat", 
-                                                messages=[  {"role": "system", "content": prompt},
-                                                            {"role": "user", "content": user_input}], 
-                                                temperature=temperature,
-                                                stream=False,
-                                                max_tokens=1024)
-    answer = response1.choices[0].message.content
-    print("answer:\n"+answer)
-    return answer
 
 def find_similar_methods(model, merged_info, source_issue_id, description, class_embeddings, cursor):
     # use sentence-transformer to calculate cosine similarity
@@ -56,7 +40,7 @@ def enlarge():
     class_embeddings = model.encode(list(merged_info.values()))
     cprint("Finished preparing necessary data", "blue")
     
-    db = sqlite3.connect(f'/crossfuzz/crossfuzz/data/db/crossfuzz_{TABLE_NAME}.db')
+    db = sqlite3.connect('../data/db/crossfuzz.db')
     cursor = db.cursor()
     cursor.execute(f"DROP TABLE IF EXISTS enlargement_{TABLE_NAME}")
     cursor.execute(f"CREATE TABLE enlargement_{TABLE_NAME} (source_issue_id INT, merged_info_id INT, merged_name TEXT, score REAL)")
@@ -84,28 +68,19 @@ def enlarge():
         #     break
 
 def one_step(user_input, merged_name, source_issue_id, merged_info_id):
-    # new_testcase = call_llm(4, COMPILER_NAME, user_input, "gemini-3-pro-preview", 0.5)
-    new_testcase = call_llm(4, COMPILER_NAME, user_input, "o3", 0.5)
+    new_testcase = call_llm(4, COMPILER_NAME, user_input)
     if new_testcase is None:
         raise Exception("new_testcase is None")
-    comment = "// "+merged_name+"now deepseek generate"
+    comment = "// "+merged_name
     try:
         write_down(COMPILER_NAME, new_testcase, f"{source_issue_id}_{merged_info_id}", f"../data/testcases-{COMPILER_NAME}-4/", comment)
     except Exception as e:
         print(e)
 
-def two_step(user_input, merged_name, source_issue_id, merged_info_id):
-    judgement = call_llm(4, COMPILER_NAME, user_input, "gemini-3-pro-preview", 0.5)
-    if "true" in judgement:
-        user_input += f"\nJudgement: {judgement}"
-        new_testcase = call_llm(5, COMPILER_NAME, user_input, "o3", 0.5)
-        comment = "// "+merged_name
-        write_down(COMPILER_NAME, new_testcase, f"{source_issue_id}_{merged_info_id}", f"../data/testcases-{COMPILER_NAME}-4/", comment)
-
 def generate_new_testcases():
     with open("../data/method_description.json", "r") as f:
         merged_info = json.load(f)
-    db = sqlite3.connect(f'/crossfuzz/crossfuzz/data/db/crossfuzz_{TABLE_NAME}.db')
+    db = sqlite3.connect('../data/db/crossfuzz.db')
     cursor = db.cursor()
     cursor.execute(f"SELECT * FROM enlargement_{TABLE_NAME} WHERE score > 0.65")
     #  ORDER BY score DESC
@@ -136,7 +111,6 @@ def generate_new_testcases():
             transformed_analysis = testcase_result[1]
             user_input = "Provided bug description:\n"+transformed_analysis+"\nSimilar method:\n"+merged_name+merged_info[merged_name]
             # print("user_input:\n", user_input)
-            # two_step(user_input, merged_name, source_issue_id, merged_info_id)
             one_step(user_input, merged_name, source_issue_id, merged_info_id)
             # break
         # break

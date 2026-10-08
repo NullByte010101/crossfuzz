@@ -224,7 +224,7 @@ def filter(anomaly_type, anomaly_results, testcase_content):
     return "still_anomalies"
 
 def first_filter():
-    conn = sqlite3.connect("../data/crossfuzz-enlargement.db")
+    conn = sqlite3.connect("../data/db/crossfuzz.db")
     with open("anomalies_crossfuzz_gcc_4.json", "r") as f:
         anomalies = json.load(f)
     still_anomalies = {
@@ -260,7 +260,7 @@ def first_filter():
     conn.close()
 
 def second_filter():
-    conn = sqlite3.connect("../data/crossfuzz.db")
+    conn = sqlite3.connect("../data/db/crossfuzz.db")
     with open(RESULT_DIR+"still_anomalies.json", "r") as f:
         anomalies = json.load(f)
     # anomalies = {

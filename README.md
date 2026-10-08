@@ -24,19 +24,22 @@ pip install -r requirements.txt
 
 ### 2. Download Compilers
 
-The versions of the target JVMs are listed below:
+The versions of the target JVMs are listed below. All versions are the latest available as of June 30, 2026.
 
 |JVM instance|Version|
 |---|---|
-|[HotSpot JDK8](https://github.com/openjdk/jdk8u/tags)|8u492-b00|
-|[HotSpot JDK11](https://github.com/openjdk/jdk11u/tags)|11.0.31-0|
-|[HotSpot JDK17](https://github.com/openjdk/jdk17u/tags)|17.0.18-7|
-|[HotSpot JDK21](https://github.com/openjdk/jdk21u/tags)|21.0.10-6|
-|[OpenJ9 JDK8](https://github.com/ibmruntimes/semeru8-binaries/releases)|8u472b08_openj9-0.56.0|
-|[OpenJ9 JDK11](https://github.com/ibmruntimes/semeru11-binaries/releases)|11.0.29_7_openj9-0.56.0|
-|[OpenJ9 JDK17](https://github.com/ibmruntimes/semeru17-binaries/releases)|jdk-17.0.17_10_openj9-0.56.0|
-|[OpenJ9 JDK21](https://github.com/ibmruntimes/semeru21-binaries/releases)|21.0.9_10_openj9-0.56.0|
-|[GraalVM JDK21](https://www.graalvm.org/downloads)|21.0.9|
+|[HotSpot JDK8](https://github.com/openjdk/jdk8u/tags)|8u492-b09|
+|[HotSpot JDK11](https://github.com/openjdk/jdk11u/tags)|11.0.31+11|
+|[HotSpot JDK17](https://github.com/openjdk/jdk17u/tags)|17.0.19+10|
+|[HotSpot JDK21](https://github.com/openjdk/jdk21u/tags)|21.0.11+10|
+|[HotSpot JDK25](https://github.com/openjdk/jdk25u/tags)|25.0.3+9|
+|[OpenJ9 JDK8](https://github.com/ibmruntimes/semeru8-binaries/releases)|8u492b09|
+|[OpenJ9 JDK11](https://github.com/ibmruntimes/semeru11-binaries/releases)|11.0.31+11|
+|[OpenJ9 JDK17](https://github.com/ibmruntimes/semeru17-binaries/releases)|17.0.19+10|
+|[OpenJ9 JDK21](https://github.com/ibmruntimes/semeru21-binaries/releases)|21.0.11+10|
+|[OpenJ9 JDK25](https://github.com/ibmruntimes/semeru25-binaries/releases)|25.0.3+9|
+|[GraalVM JDK21](https://www.graalvm.org/downloads)|21.0.11|
+|[GraalVM JDK25](https://www.graalvm.org/downloads)|25.1.3|
 
 Please create the directory crossfuzz/jvms and place all downloaded JVMs in this folder.
 

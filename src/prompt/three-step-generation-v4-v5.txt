@@ -1,0 +1,72 @@
+**Task**
+Analyze the provided {compiler_name} bug report. Extract only reported facts; use "" or [] for missing information.
+
+**Output (JSON only)**
+Keep root_cause to one sentence and lists to distinct trigger-relevant items. Include a minimal reported test case when available; preserve its trigger conditions. Escape source code as a JSON string.
+{
+  "root_cause": "",
+  "code_example": "",
+  "code_patterns": [],
+  "compiler_options": []
+}
+===prompt===
+**Task**
+Propose a concrete Java test hypothesis from the stage-1 analysis, using the original {compiler_name} report to verify source facts.
+
+**Requirements**
+1. Propose a concrete source-linked test using the same trigger relation, a partial adaptation, or a related rule or transformation.
+2. Describe the Java construction and inputs. Distinguish proposed adaptations from source facts; include unmapped_source_conditions only when there are material substitutions or lost conditions to record. An adaptation is not an established reproduction.
+3. Set evidence status to verified for a known semantic rule or documented processing path, hypothesis for a plausible connection, or unmapped for a condition without a counterpart. Name the rule or path in semantic_basis; verified qualifies this basis, not the existence of a JDK defect. Do not turn a rejected relation into positive evidence.
+4. Consider JDK 8, 11, 17, and 21; list expected supported versions as integers from this set, or [] if unknown. Do not invent APIs, flags, or source facts.
+5. Proceed with direct, partial, or inspired mappings when a concrete source-linked test exists. Otherwise set potential_root_cause and adapted_code_example to "", adapted_code_patterns and adapted_compiler_options to [], and include only unmapped evidence with nonempty source_trigger and semantic_basis, java_construct "", and jdk_versions [].
+
+**Output (JSON only)**
+Use one sentence for the hypothesis and one evidence entry per distinct connection (usually one). Keep adapted_code_patterns and adapted_compiler_options as short, non-redundant lists of strings. Examples and options may be empty. If needed, add unmapped_source_conditions as a list of strings. A candidate requires nonempty potential_root_cause and at least one verified or hypothesis entry; every such entry must have nonempty source_trigger, java_construct, and semantic_basis.
+{
+  "potential_root_cause": "Proposed Java test hypothesis",
+  "adapted_code_example": "",
+  "adapted_code_patterns": [],
+  "adapted_compiler_options": [],
+  "mapping_evidence": [{"source_trigger": "Reported trigger", "java_construct": "Java construction and inputs", "semantic_basis": "Rule or hypothesized connection", "jdk_versions": [], "status": "hypothesis"}]
+}
+===prompt===
+**Task**
+Construct a runnable Java test from the stage-2 hypothesis. Direct, partial, and inspired mappings are usable; adapt source conditions as needed while retaining a concrete source-linked test.
+
+**Requirements**
+1. Aim for the same source and runtime options to work on JDK 8, 11, 17, and 21, replacing version-specific features where possible and stating material adaptations. Compilation and execution will validate compatibility; neither a shared defect nor compatibility is established by generation alone.
+2. Use fixed inputs and print deterministic observations of values, exceptions, or equivalent computations. An exact expected value is optional; identical outputs are valid. Avoid timing, unseeded randomness, identity hashes, unspecified iteration order, and environment-dependent output. Catch expected exceptions and print stable indicators rather than version-dependent messages or stack traces. Expected exceptions alone do not indicate a bug.
+3. Emit self-contained Java source with exactly one public top-level class and public static void main(String[] args). Use no external files, dependencies, input, or network. Preserve the computation under test and bound repetition.
+4. execution_options is "" unless necessary java runtime options are needed. Exclude executable/class names, application arguments, javac flags, shell syntax, and special launch modes. Adapt unsupported flags, preview features, or negative compilation tests to a related executable test where possible.
+5. feasible means a concrete candidate was constructed. Set false only if no useful source-linked test fits these requirements; then leave java_program and execution_options empty and give the specific reason. Do not require proof of a shared bug or emit placeholder code.
+
+**Output (JSON only)**
+Use a JSON boolean for feasible (true or false), and JSON strings for the other fields; escape source-code quotes, backslashes, and newlines. On success, provide complete source; on refusal, use empty strings for java_program and execution_options. Replace the illustrative values below according to the result.
+{
+   "reasoning": "at most two sentences stating the construction and observation, plus material adaptations or uncertainty; for refusal, only the reason",
+   "feasible": true,
+   "java_program": "complete source",
+   "execution_options": ""
+}
+===prompt===
+**Task**
+Extend the mapped hypothesis into a runnable Java test using the supplied target API. The API must contribute to data construction, computation, control flow, or meaningful observation.
+
+**Relevance**
+Assess whether the API supports the same trigger relation, a related semantic rule, transformation, or processing path, or a plausible but unconfirmed connection. Attempt generation for these connections; refuse when there is only topic overlap without a concrete source-linked construction. State the connection and any uncertainty in reasoning. Similarity scores alone do not establish a connection.
+
+**Requirements**
+1. Aim for the same source and runtime options to work on JDK 8, 11, 17, and 21, replacing version-specific features where possible and stating material adaptations. Compilation and execution will validate compatibility; neither a shared defect nor compatibility is established by generation alone.
+2. Use fixed inputs and print deterministic observations of values, exceptions, or equivalent computations. An exact expected value is optional; identical outputs are valid. Avoid timing, unseeded randomness, identity hashes, unspecified iteration order, and environment-dependent output. Catch expected exceptions and print stable indicators rather than version-dependent messages or stack traces. Expected exceptions alone do not indicate a bug.
+3. Emit self-contained Java source with exactly one public top-level class and public static void main(String[] args). Use no external files, dependencies, input, or network. Preserve the computation under test and bound repetition.
+4. execution_options is "" unless necessary java runtime options are needed. Exclude executable/class names, application arguments, javac flags, shell syntax, and special launch modes. Adapt unsupported flags, preview features, or negative compilation tests to a related executable test where possible.
+5. feasible means a concrete candidate was constructed. Set false only if no useful source-linked test fits these requirements; then leave java_program and execution_options empty and give the specific reason. Do not require proof of a shared bug or emit placeholder code.
+
+**Output (JSON only)**
+Use a JSON boolean for feasible (true or false), and JSON strings for the other fields; escape source-code quotes, backslashes, and newlines. On success, provide complete source; on refusal, use empty strings for java_program and execution_options. Replace the illustrative values below according to the result.
+{
+   "reasoning": "at most two sentences stating the API connection and observation, plus material adaptations or uncertainty; for refusal, only the reason",
+   "feasible": true,
+   "java_program": "complete source",
+   "execution_options": ""
+}

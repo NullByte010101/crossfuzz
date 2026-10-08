@@ -1,5 +1,4 @@
 from termcolor import cprint
-from openai import OpenAI
 import pymysql
 import random
 import json5
@@ -12,21 +11,6 @@ from utils.tools import *
 
 COMPILER_NAME = "clang"
 
-# def call_llm(stage, compiler_name, user_input, model_name, temperature):
-#     client = OpenAI(api_key="sk-xxx", base_url="https://api.deepseek.com")
-#     with open("prompt/three-step-generation-v4.txt", "r") as f:
-#         all_prompt = f.read()
-#     prompt = all_prompt.split("===prompt===")[stage-1].strip().replace("{compiler_name}", compiler_name)
-#     response1 = client.chat.completions.create( model="deepseek-chat", 
-#                                                 messages=[  {"role": "system", "content": prompt},
-#                                                             {"role": "user", "content": user_input}], 
-#                                                 temperature=temperature,
-#                                                 stream=False,
-#                                                 max_tokens=1024)
-#     answer = response1.choices[0].message.content
-#     print("answer:\n"+answer)
-#     return answer
-
 def main():
     dbhandler = DBHandler()
     
@@ -35,15 +19,15 @@ def main():
     issue_id_list = [issue[0] for issue in dbhandler.cursor.fetchall()]
     already_writed = []
     # TMP.
-    # for f in os.listdir(f"/crossfuzz/crossfuzz/data/testcases-{COMPILER_NAME}-2-v1"):
+    # for f in os.listdir(f"../data/testcases-{COMPILER_NAME}-2-v1"):
     #     issue_str = f.split(".")[0].replace("Test", "")
     #     already_writed.append(int(issue_str))
-    for f in os.listdir(f"/crossfuzz/tmp-crossfuzz/data/testcases-{COMPILER_NAME}-1"):
+    for f in os.listdir(f"../data/testcases-{COMPILER_NAME}-1"):
         if f.endswith(".txt"):
             continue
         issue_str = f.split(".")[0].replace("Test", "")
         already_writed.append(int(issue_str))
-    with open(f"/crossfuzz/tmp-crossfuzz/data/testcases-{COMPILER_NAME}-1/selected_issue_id_list.txt", "r") as f:
+    with open(f"../data/testcases-{COMPILER_NAME}-1/selected_issue_id_list.txt", "r") as f:
         already_writed += [int(line.strip()) for line in f.readlines()]
     # tmp_issue_id_list = list(set(issue_id_list)-set(already_writed))
     # selected_issue_id_list = random.sample(tmp_issue_id_list, 500)
@@ -112,7 +96,7 @@ def main():
             print("too long")
             continue
         # call llm to analyze
-        analysis = call_llm(1, COMPILER_NAME, bug_report_content, "gemini-3-pro-preview", 0.2)
+        analysis = call_llm(1, COMPILER_NAME, bug_report_content)
         if analysis is None or len(analysis) == 0:
             print("analysis is empty")
             continue
@@ -124,7 +108,7 @@ def main():
             # dbhandler.cursor.execute(f"delete from {COMPILER_NAME}_bugs where id={issue_id}")
             continue
         # call llm to transform
-        transformed_analysis = call_llm(2, COMPILER_NAME, analysis, "gemini-3-pro-preview", 0.3)
+        transformed_analysis = call_llm(2, COMPILER_NAME, analysis)
         if transformed_analysis is None or len(transformed_analysis) == 0:
             print("transformed_analysis is empty")
             continue
@@ -135,7 +119,7 @@ def main():
         if "\"potential_root_cause\": \"\"" in transformed_analysis:
             continue
         # call llm to generate testcases
-        testcases = call_llm(3, COMPILER_NAME, transformed_analysis, "o3", 0.4)
+        testcases = call_llm(3, COMPILER_NAME, transformed_analysis)
         if len(testcases) == 0:
             print("testcases is empty")
             continue

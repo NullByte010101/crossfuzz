@@ -5,7 +5,7 @@ import re
 
 
 def connect_db():
-    conn = sqlite3.connect("../data/db/oopsla-tmp.db")
+    conn = sqlite3.connect("../data/db/crossfuzz.db")
     cursor = conn.cursor()
     return conn, cursor
 

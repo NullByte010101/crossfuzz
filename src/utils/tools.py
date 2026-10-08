@@ -1,3 +1,4 @@
+import os
 import re
 import time
 import json
@@ -56,24 +57,31 @@ def retry_with_backoff(max_retries=5, initial_delay=10):
         return wrapper
     return decorator
 
+# 官方 OpenAI API，key 从环境变量 OPENAI_API_KEY 读取（在 ~/.bashrc 中设置）。
+# 默认模型与 rq4/abl2-v4 一致，使用固定快照，避免别名静默漂移。
+DEFAULT_MODEL = os.environ.get("CROSSFUZZ_MODEL", "gpt-5.4-2026-03-05")
+PROMPT_FILE = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                           "prompt", "three-step-generation-v4-v5.txt")
+
+_client = None
+
+def _get_client():
+    global _client
+    if _client is None:
+        if not os.environ.get("OPENAI_API_KEY"):
+            raise RuntimeError("OPENAI_API_KEY is not set (check ~/.bashrc)")
+        _client = OpenAI(http_client=httpx.Client(timeout=300.0))
+    return _client
+
 @retry_with_backoff(max_retries=5, initial_delay=10)
-def call_llm(stage, compiler_name, user_input, model_name, temperature):
-    api_keys = [
-        "sk-xxx", 
-        "sk-xxx"
-    ]
-    client = OpenAI(
-        api_key= random.choice(api_keys),
-        base_url="https://api.huiyan-ai.cn/v1",
-        http_client=httpx.Client(timeout=300.0)
-        )
-    with open("prompt/three-step-generation-v4.txt", "r") as f:
+def call_llm(stage, compiler_name, user_input, model_name=DEFAULT_MODEL):
+    # 使用模型默认参数：不传 temperature / max_tokens 等
+    with open(PROMPT_FILE, "r") as f:
         all_prompt = f.read()
     prompt = all_prompt.split("===prompt===")[stage-1].strip().replace("{compiler_name}", compiler_name)
-    response = client.chat.completions.create( model=model_name, 
+    response = _get_client().chat.completions.create(model=model_name,
                                                 messages=[  {"role": "system", "content": prompt},
-                                                            {"role": "user", "content": user_input}], 
-                                                temperature=temperature,
+                                                            {"role": "user", "content": user_input}],
                                                 stream=False)
     # print("response:", response)
     answer = response.choices[0].message.content

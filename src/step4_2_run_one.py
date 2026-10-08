@@ -11,29 +11,29 @@ from termcolor import cprint
 # from database import DBHandler
 
 JDK_BIN_PATHS = [
-    "/crossfuzz/crossfuzz/jvms/bootjvm8/bin",
-    # "/crossfuzz/crossfuzz/jvms/bootjvm11.0.29/bin",
-    "/crossfuzz/crossfuzz/jvms/bootjvm11.0.30/bin",
-    "/crossfuzz/crossfuzz/jvms/bootjvm17/bin",
-    # "/crossfuzz/crossfuzz/jvms/bootjvm21.0.9/bin",
-    # "/crossfuzz/crossfuzz/jvms/bootjvm21.0.10/bin",
-    # "/crossfuzz/crossfuzz/jvms/bootjvm25/bin",
-    "/crossfuzz/crossfuzz/jvms/openj9-8-8u482-b08/bin",
-    "/crossfuzz/crossfuzz/jvms/openj9-11.0.30/bin",
-    "/crossfuzz/crossfuzz/jvms/openj9-17.0.18+8/bin",
-    "/crossfuzz/crossfuzz/jvms/openj9-21.0.10+7/bin",
-    # "/crossfuzz/crossfuzz/jvms/hotspot-8/build/linux-x86_64-normal-server-release/jdk/bin",
-    # "/crossfuzz/crossfuzz/jvms/hotspot-11/build/linux-x86_64-normal-server-release/jdk/bin",
-    # "/crossfuzz/crossfuzz/jvms/hotspot-17/build/linux-x86_64-server-release/jdk/bin",
-    # "/crossfuzz/crossfuzz/jvms/hotspot-21/build/linux-x86_64-server-release/jdk/bin",
-    # "/crossfuzz/crossfuzz/jvms/openj9-8/bin",
-    # "/crossfuzz/crossfuzz/jvms/openj9-11/bin",
-    # "/crossfuzz/crossfuzz/jvms/openj9-17/bin",
-    # "/crossfuzz/crossfuzz/jvms/openj9-21/bin",
-    # "/crossfuzz/crossfuzz/jvms/graalvm-21/bin"
+    "../jvms/bootjvm8/bin",
+    # "../jvms/bootjvm11.0.29/bin",
+    "../jvms/bootjvm11.0.30/bin",
+    "../jvms/bootjvm17/bin",
+    # "../jvms/bootjvm21.0.9/bin",
+    # "../jvms/bootjvm21.0.10/bin",
+    # "../jvms/bootjvm25/bin",
+    "../jvms/openj9-8-8u482-b08/bin",
+    "../jvms/openj9-11.0.30/bin",
+    "../jvms/openj9-17.0.18+8/bin",
+    "../jvms/openj9-21.0.10+7/bin",
+    # "../jvms/hotspot-8/build/linux-x86_64-normal-server-release/jdk/bin",
+    # "../jvms/hotspot-11/build/linux-x86_64-normal-server-release/jdk/bin",
+    # "../jvms/hotspot-17/build/linux-x86_64-server-release/jdk/bin",
+    # "../jvms/hotspot-21/build/linux-x86_64-server-release/jdk/bin",
+    # "../jvms/openj9-8/bin",
+    # "../jvms/openj9-11/bin",
+    # "../jvms/openj9-17/bin",
+    # "../jvms/openj9-21/bin",
+    # "../jvms/graalvm-21/bin"
 ]
 
-TESTCASE_DIR = "/crossfuzz/crossfuzz/data/results-gcc-4/potential_bugs"
+TESTCASE_DIR = "../data/results-gcc-4/potential_bugs"
 
 def get_jdk_name(jdk_path):
     """

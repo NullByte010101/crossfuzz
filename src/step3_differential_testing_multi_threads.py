@@ -15,35 +15,38 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 import sqlite3
 
 JDK_BIN_PATHS = [
-    "/crossfuzz/crossfuzz/jvms/hotspot-8/build/linux-x86_64-normal-server-release/jdk/bin",
-    "/crossfuzz/crossfuzz/jvms/hotspot-11/build/linux-x86_64-normal-server-release/jdk/bin",
-    "/crossfuzz/crossfuzz/jvms/hotspot-17/build/linux-x86_64-server-release/jdk/bin",
-    "/crossfuzz/crossfuzz/jvms/hotspot-21/build/linux-x86_64-server-release/jdk/bin",
-    "/crossfuzz/crossfuzz/jvms/openj9-8/bin",
-    "/crossfuzz/crossfuzz/jvms/openj9-11/bin",
-    "/crossfuzz/crossfuzz/jvms/openj9-17/bin",
-    "/crossfuzz/crossfuzz/jvms/openj9-21/bin",
-    "/crossfuzz/crossfuzz/jvms/graalvm-21/bin"
+    "../jvms/hotspot-8/build/linux-x86_64-normal-server-release/jdk/bin",
+    "../jvms/hotspot-11/build/linux-x86_64-normal-server-release/jdk/bin",
+    "../jvms/hotspot-17/build/linux-x86_64-server-release/jdk/bin",
+    "../jvms/hotspot-21/build/linux-x86_64-server-release/jdk/bin",
+    "../jvms/hotspot-25/build/linux-x86_64-server-release/jdk/bin",
+    "../jvms/openj9-8/bin",
+    "../jvms/openj9-11/bin",
+    "../jvms/openj9-17/bin",
+    "../jvms/openj9-21/bin",
+    "../jvms/openj9-25/bin",
+    "../jvms/graalvm-21/bin",
+    "../jvms/graalvm-25/bin"
 ]
 
-# TESTCASE_DIRS = [ "/crossfuzz/crossfuzz/data/testcases-gcc-1",
-#             "/crossfuzz/tmp-crossfuzz/data/testcases-clang-1",
-#             "/crossfuzz/tmp-crossfuzz/data/testcases-cpython-1",
-#             "/crossfuzz/tmp-crossfuzz/data/testcases-cpython-1-v1",
-#             "/crossfuzz/tmp-crossfuzz/data/testcases-pypy-1",
-#             "/crossfuzz/tmp-crossfuzz/data/testcases-pypy-1-v1",
-#             "/crossfuzz/tmp-crossfuzz/data/testcases-rustc-1",
-#             "/crossfuzz/crossfuzz/data/testcases-gcc-2",
-#             "/crossfuzz/crossfuzz/data/testcases-clang-2",
-#             "/crossfuzz/crossfuzz/data/testcases-pypy-2",
-#             "/crossfuzz/crossfuzz/data/testcases-rustc-2",
-#             "/crossfuzz/crossfuzz/data/testcases-rustc-2-v1",
-#             "/crossfuzz/crossfuzz/data/testcases-cpython-2",
+# TESTCASE_DIRS = [ "../data/testcases-gcc-1",
+#             "../data/testcases-clang-1",
+#             "../data/testcases-cpython-1",
+#             "../data/testcases-cpython-1-v1",
+#             "../data/testcases-pypy-1",
+#             "../data/testcases-pypy-1-v1",
+#             "../data/testcases-rustc-1",
+#             "../data/testcases-gcc-2",
+#             "../data/testcases-clang-2",
+#             "../data/testcases-pypy-2",
+#             "../data/testcases-rustc-2",
+#             "../data/testcases-rustc-2-v1",
+#             "../data/testcases-cpython-2",
 #             ]
-# TESTCASE_DIRS = ["/crossfuzz/crossfuzz/data/testcases-gcc-4"]
+# TESTCASE_DIRS = ["../data/testcases-gcc-4"]
 # ANOMALIES_FILE = "anomalies_crossfuzz_gcc_4.json"
 
-TESTCASE_DIRS = ["/crossfuzz/crossfuzz/old-data/testcases-xwq-gcc"]
+TESTCASE_DIRS = ["../old-data/testcases-xwq-gcc"]
 ANOMALIES_FILE = "anomalies_crossfuzz_gcc_xwq.json"
 
 def get_jdk_name(jdk_path):
@@ -472,7 +475,7 @@ def run_one_folder(conn, cursor, testcase_dir, result_dir):
         # break
 
 def kill_existing_processes():
-    os.system("pkill -f /crossfuzz/crossfuzz/jvms")
+    os.system("pkill -f crossfuzz/jvms")
 
 def main():
     # Registration cleanup function
@@ -483,8 +486,8 @@ def main():
 
     input("Attention: the result folders are never cleared! Press Enter to continue...")
     
-    # conn = sqlite3.connect("../data/crossfuzz-enlargement.db")
-    conn = sqlite3.connect("../data/xwq-gcc.db")
+    # conn = sqlite3.connect("../data/db/crossfuzz.db")
+    conn = sqlite3.connect("../data/db/crossfuzz.db")
     cursor = conn.cursor()
     for testcase_dir in TESTCASE_DIRS:
         result_dir = testcase_dir.replace("testcases", "results")
@@ -495,8 +498,8 @@ def main():
     conn.close()
 
 def clean():
-    # conn = sqlite3.connect("../data/crossfuzz-enlargement.db")
-    conn = sqlite3.connect("../data/xwq-gcc.db")
+    # conn = sqlite3.connect("../data/db/crossfuzz.db")
+    conn = sqlite3.connect("../data/db/crossfuzz.db")
     cursor = conn.cursor()
     for folder in TESTCASE_DIRS:
         result_dir = folder.replace("testcases-", "results-")
