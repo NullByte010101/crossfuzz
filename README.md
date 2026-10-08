@@ -63,6 +63,16 @@ gunzip data/db/crossfuzz.db.gz
 
 The SHA-256 checksum of `crossfuzz.db` is `f7e52351a1280ad492ceb586ad241a17466cc428c3ea48b4bdd131480ddf4a79`.
 
+Test case diversification (`step2_enlarge_testcase.py`) also reads the API method descriptions in `data/method_description.json`. Because of its size (65MB), it is likewise provided as a gzip-compressed file in the [data-v1 release](https://github.com/NullByte010101/crossfuzz/releases/tag/data-v1):
+
+```bash
+cd crossfuzz
+curl -L -o data/method_description.json.gz https://github.com/NullByte010101/crossfuzz/releases/download/data-v1/method_description.json.gz
+gunzip data/method_description.json.gz
+```
+
+The SHA-256 checksum of `method_description.json` is `d204ddbebaa36f86d6b45ae9d98c1c504c8a6f4574d19b165b0848aa0965db04`.
+
 ### 4. Download the Embedding Model
 
 Test case diversification (`step2_enlarge_testcase.py`) uses the [all-mpnet-base-v2](https://huggingface.co/sentence-transformers/all-mpnet-base-v2) sentence embedding model. Download it to `model/all-mpnet-base-v2` as follows:
