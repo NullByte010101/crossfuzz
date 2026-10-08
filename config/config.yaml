@@ -1,0 +1,80 @@
+# CrossFuzz configuration.
+# Relative paths are resolved against paths.project_root
+# (defaults to the repository root when left empty).
+
+paths:
+  project_root: ""
+  db_file: data/db/crossfuzz.db
+  model_dir: model/all-mpnet-base-v2
+  method_description: data/method_description.json
+  jvms_dir: jvms
+
+# step1_transform_testcase.py
+step1:
+  compiler_name: gcc
+  # Source bug reports (read)
+  bug_table: gcc_bugs_sample
+  # Generated analyses and test cases (written)
+  table_name: testcase_gcc
+  # Issues that already have TestXXX.java here, or are listed in skip_issue_list, are skipped.
+  # Both are optional: a missing directory or file means nothing is skipped.
+  skip_testcase_dir: data/testcases-gcc
+  skip_issue_list: data/testcases-gcc/selected_issue_id_list.txt
+  output_dir: data/testcases-gcc
+
+# step2_enlarge_testcase.py
+step2:
+  compiler_name: gcc
+  # Reads table testcase_<table_suffix>, writes table enlargement_<table_suffix>
+  table_suffix: gcc
+  analyzed_issues: data/analyzed_issues.txt
+  output_dir: data/testcases-gcc
+
+# step3_differential_testing_multi_threads.py
+step3:
+  # Results go to the same path with "testcases" replaced by "results";
+  # the DB table is diff_test_<suffix after "testcases-">
+  testcase_dirs:
+    - data/testcases-gcc
+  anomalies_file: anomalies_crossfuzz_gcc.json
+  # Relative to paths.jvms_dir
+  jdk_bin_paths:
+    - hotspot-8/build/linux-x86_64-normal-server-release/jdk/bin
+    - hotspot-11/build/linux-x86_64-normal-server-release/jdk/bin
+    - hotspot-17/build/linux-x86_64-server-release/jdk/bin
+    - hotspot-21/build/linux-x86_64-server-release/jdk/bin
+    - hotspot-25/build/linux-x86_64-server-release/jdk/bin
+    - openj9-8/bin
+    - openj9-11/bin
+    - openj9-17/bin
+    - openj9-21/bin
+    - openj9-25/bin
+    - graalvm-21/bin
+    - graalvm-25/bin
+
+# step4_1_filter.py
+step4_1:
+  diff_test_table: diff_test_gcc
+  testcase_dir: data/testcases-gcc
+  result_dir: data/results-gcc
+  anomalies_file: anomalies_crossfuzz_gcc.json
+  first_filter_output: still_anomalies_cpython.json
+  second_filter_input: data/results-gcc/still_anomalies.json
+  second_filter_output: still_anomalies.json
+  potential_bugs_output: potential_bugs.json
+  false_positives_output: false_positives.json
+
+# step4_2_run_one.py
+step4_2:
+  testcase_dir: data/results-gcc/potential_bugs
+  java_files:
+    - Test118381_5304.java
+  # Relative to paths.jvms_dir
+  jdk_bin_paths:
+    - bootjvm8/bin
+    - bootjvm11.0.30/bin
+    - bootjvm17/bin
+    - openj9-8-8u482-b08/bin
+    - openj9-11.0.30/bin
+    - openj9-17.0.18+8/bin
+    - openj9-21.0.10+7/bin

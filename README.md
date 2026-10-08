@@ -63,9 +63,29 @@ gunzip data/db/crossfuzz.db.gz
 
 The SHA-256 checksum of `crossfuzz.db` is `f7e52351a1280ad492ceb586ad241a17466cc428c3ea48b4bdd131480ddf4a79`.
 
-### 4. Run CrossFuzz
+### 4. Download the Embedding Model
 
-4-1. Test case transpiling
+Test case diversification (`step2_enlarge_testcase.py`) uses the [all-mpnet-base-v2](https://huggingface.co/sentence-transformers/all-mpnet-base-v2) sentence embedding model. Download it to `model/all-mpnet-base-v2` as follows:
+
+```bash
+cd crossfuzz/src
+python download_model.py
+```
+
+### 5. Configuration
+
+All paths, file names, and database table names used by the scripts are defined in `config/config.yaml`. Relative paths are resolved against the repository root, so the scripts can be run from any working directory. Before running each step, check its section in the config file (e.g., `step1`, `step2`).
+
+The LLM is accessed through the OpenAI API. Set your API key before running steps 1 and 2:
+
+```bash
+export OPENAI_API_KEY=<your-api-key>
+export CROSSFUZZ_MODEL=gpt-5.4-2026-03-05  # optional, this is the default
+```
+
+### 6. Run CrossFuzz
+
+6-1. Test case transpiling
 
 We design a three-step prompt chain for test case transpiling: (1) bug report distillation, (2) cross-language semantic bridge, and (3) test case synthesis. All these steps are implemented in `step1_transform_testcase.py`. The results are stored in table `testcase_xxx`.
 
@@ -73,7 +93,7 @@ We design a three-step prompt chain for test case transpiling: (1) bug report di
 python step1_transform_testcase.py
 ```
 
-4-2. Test case diversification
+6-2. Test case diversification
 
 In this phase, we enlarge the test cases by searching for semantically similar APIs and generating new test cases. This step is implemented in `step2_enlarge_testcase.py`. The results are stored in table `enlargement_xxx`.
 
@@ -81,7 +101,7 @@ In this phase, we enlarge the test cases by searching for semantically similar A
 python step2_enlarge_testcase.py
 ```
 
-4-3. Differential testing
+6-3. Differential testing
 
 In this phase, we run the test cases on different JVMs and identify anomalous behaviors. This step is implemented in `step3_differential_testing_multi_threads.py`. The results are stored in table `diff_test_xxx`.
 
