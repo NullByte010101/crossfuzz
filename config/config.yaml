@@ -58,7 +58,7 @@ step4_1:
   testcase_dir: data/testcases-gcc
   result_dir: data/results-gcc
   anomalies_file: anomalies_crossfuzz_gcc.json
-  first_filter_output: still_anomalies_cpython.json
+  first_filter_output: still_anomalies_gcc.json
   second_filter_input: data/results-gcc/still_anomalies.json
   second_filter_output: still_anomalies.json
   potential_bugs_output: potential_bugs.json

@@ -2,3 +2,4 @@
 data/db/*.db
 data/method_description.json
 data/method_description.json.gz
+model/
